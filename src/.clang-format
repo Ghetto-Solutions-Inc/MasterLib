@@ -2,12 +2,11 @@
 BasedOnStyle: Google
 AlignTrailingComments: true
 AllowShortFunctionsOnASingleLine: Inline
-IndentWidth: '4'
+IndentWidth: '2'
 NamespaceIndentation: None
 SpaceAfterCStyleCast: false
-TabWidth: '4'
+TabWidth: '2'
 UseTab: Never
 ConstructorInitializerIndentWidth: 0
-AccessModifierOffset: -4
 
 ...

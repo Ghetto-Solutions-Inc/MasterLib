@@ -1,8 +1,9 @@
 //
-//  Breakpoints.h
+//  Breakpoint.h
 //  Liberation
 //
-//  Copyright © 2016 Satori. All rights reserved.
+//  Created by satori
+//  Copyright © 2016 satori. All rights reserved.
 //
 
 #pragma once
@@ -11,29 +12,29 @@
 #include <functional>
 #include <vector>
 
-class Process;
-class ThreadState;
+#include "Process.h"
+#include "ThreadState.h"
 
 using BreakpointCallback = std::function<void(ThreadState &)>;
 
 class Breakpoint {
-public:
-    Breakpoint(Process *proc, vm_address_t address)
-    : _address(address), _proc(proc) {}
-    virtual ~Breakpoint() {}
+ public:
+  Breakpoint(Process *proc, vm_address_t address)
+  : _address(address), _proc(proc) {}
+  virtual ~Breakpoint() {}
 
-    virtual bool Apply() = 0;
-    virtual bool Reset() = 0;
+  virtual bool Apply() = 0;
+  virtual bool Reset() = 0;
 
-    virtual bool active() { return this->_active; }
-    virtual vm_address_t address() { return this->_address; }
-    virtual BreakpointCallback callback() { return this->_callback; }
+  virtual void AddCallback(BreakpointCallback cb) { _callback = cb; }
 
-    virtual void AddCallback(BreakpointCallback cb) { _callback = cb; }
+  bool active() const { return active_; }
+  vm_address_t address() const { return address_; }
+  BreakpointCallback callback() const { return callback_; }
 
-protected:
-    bool _active;
-    vm_address_t _address;
-    Process *_proc;
-    BreakpointCallback _callback;
+ private:
+  bool active_;
+  vm_address_t address_;
+  Process *proc_;
+  BreakpointCallback callback_;
 };

@@ -1,20 +1,22 @@
 //
+//  AArch64Host.h
 //  Liberation
 //
-//  Copyright © 2016 Satori. All rights reserved.
+//  Created by satori
+//  Copyright © 2016 satori. All rights reserved.
 //
 
 #pragma once
 
 #include "Host.h"
 
-#if defined (__arm__) || defined (__arm64__)
+#if defined(__arm__) || defined(__arm64__)
 
 class AArch64Host : public Host {
-public:
-    virtual int HardwareBreakpointCount();
-    virtual int HardwareWatchpointCount();  // unusued in liberation
-    virtual enum Platform Platform() { return Platform::AArch64; }
+ public:
+  virtual int HardwareBreakpointCount() override;
+  virtual int HardwareWatchpointCount() override;  // unusued in liberation
+  virtual enum Platform Platform() const { return Platform::AArch64; }
 };
 
 #else

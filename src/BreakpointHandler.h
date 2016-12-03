@@ -2,7 +2,8 @@
 //  BreakpointHandler.h
 //  Liberation
 //
-//  Copyright © 2016 Satori. All rights reserved.
+//  Created by satori
+//  Copyright © 2016 satori. All rights reserved.
 //
 
 #pragma once
@@ -15,19 +16,19 @@
 #define BKPT_ALL (BKPT_ENABLED | BKPT_DISABLED)
 
 class BreakpointHandler {
-public:
-    BreakpointHandler() = default;
-    static std::shared_ptr<BreakpointHandler> SharedHandler();
+ public:
+  BreakpointHandler() = default;
+  static std::shared_ptr<BreakpointHandler> SharedHandler();
 
-    bool InstallBreakpoint(Breakpoint *bp, bool immActive = true);
-    bool UninstallBreakpoint(Breakpoint *bp);
-    bool DisableBreakpoint(Breakpoint *bp);
-    bool EnableBreakpoint(Breakpoint *bp);
+  bool InstallBreakpoint(Breakpoint *bp, bool immActive = true);
+  bool UninstallBreakpoint(Breakpoint *bp);
+  bool DisableBreakpoint(Breakpoint *bp);
+  bool EnableBreakpoint(Breakpoint *bp);
 
-    Breakpoint *BreakpointAtAddress(vm_address_t address);
+  Breakpoint *BreakpointAtAddress(vm_address_t address);
 
-    std::vector<Breakpoint *> Breakpoints(uint32_t flags = BKPT_ALL);
+  std::vector<Breakpoint *> Breakpoints(uint32_t flags = BKPT_ALL);
 
-private:
-    std::vector<Breakpoint *> _breakpoints;  // TODO: switch to smart pointer?
+ private:
+  std::vector<Breakpoint *> breakpoints_;  // TODO: switch to smart pointer?
 };

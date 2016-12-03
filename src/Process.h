@@ -2,7 +2,8 @@
 //  Process.h
 //  Liberation
 //
-//  Copyright © 2016 Satori. All rights reserved.
+//  Created by satori
+//  Copyright © 2016 satori. All rights reserved.
 //
 
 #pragma once
@@ -40,6 +41,8 @@
 
 #endif
 
+#define VM_PROT_ANY 0x2000
+
 extern "C" int proc_listpids(uint32_t type, uint32_t typeinfo, void *buffer,
                              int buffersize);
 extern "C" int proc_pidpath(int pid, void *buffer, uint32_t buffersize);
@@ -50,62 +53,66 @@ class Process;
 using ProcessRef = std::shared_ptr<Process>;
 
 class Process {
-public:
-    struct Region {
-        vm_address_t start;
-        size_t size;
-        Region(vm_address_t start, size_t size) : start(start), size(size) {}
-    };
+ public:
+  struct Region {
+    vm_address_t start;
+    size_t size;
+    vm_prot_t prot;
+    Region(vm_address_t start, size_t size, vm_prot_t prot)
+    : start(start), size(size), prot(prot) {}
+  };
 
-    struct ThreadState {
-        using ThreadStateRef = ::ThreadState*;
-        ThreadStateRef state;
+  struct ThreadState {
+    using ThreadStateRef = ::ThreadState *;
+    ThreadStateRef state;
 
-        ThreadState() : state(nullptr) {}
-        ThreadState(ThreadStateRef state) : state(state) {}
+    ThreadState() : state(nullptr) {}
+    ThreadState(ThreadStateRef state) : state(state) {}
 
-        ThreadState(Process *proc, mach_port_t thread);
-        ThreadState(mach_port_t task, mach_port_t thread);
+    ThreadState(Process *proc, mach_port_t thread);
+    ThreadState(mach_port_t task, mach_port_t thread);
 
-        operator ThreadStateRef () { return state; }
-        ThreadStateRef operator->() { return state; }
-    };
+    operator ThreadStateRef() { return state; }
+    ThreadStateRef operator->() { return state; }
+  };
 
-    static ProcessRef GetProcess(const char *name);
-    static ProcessRef GetProcess(int pid);
-    static ProcessRef Self();
+  static ProcessRef GetProcess(const char *name);
+  static ProcessRef GetProcess(int pid);
+  static ProcessRef Self();
 
-    Process(int pid, const char *name, task_t task)
-    : _pid(pid), _name(name), _task(task), _paused(false) {}
+  static bool CanAttach();
 
-    bool IsAlive();
-    bool Kill();
+  Process(int pid, const char *name, task_t task)
+  : pid_(pid), name_(name), task_(task), paused_(false) {}
 
-    bool Pause();
-    bool Resume();
+  bool IsAlive();
+  bool Kill();
 
-    bool InjectLibrary(const char *lib);  // TODO: add this at later date
+  bool Pause();
+  bool Resume();
 
-    enum Platform RunningPlatform();
+  bool InjectLibrary(const char *lib);  // TODO: add this at later date
 
-    // can ref values be used with virtual classes?
-    std::vector<::ThreadState *> Threads(
-        mach_port_t ignore = 0);  // TODO: return empty when not paused
+  enum Platform RunningPlatform();
 
-    bool ReadMemory(vm_address_t address, char *output, size_t size);
-    bool WriteMemory(vm_address_t address, char *input, size_t size,
-                     bool force = false);
-    std::vector<Process::Region> GetRegions(vm_prot_t options = VM_PROT_READ |
-                                                                VM_PROT_WRITE);
+  // can ref values be used with virtual classes?
+  std::vector<::ThreadState *> Threads(
+      mach_port_t ignore = 0);  // TODO: return empty when not paused
 
-    pid_t process_id() { return _pid; }
-    std::string name() { return _name; }
-    task_t task() { return _task; }
-    bool paused() { return _paused; }
+  bool ReadMemory(vm_address_t address, char *output, size_t size);
+  bool WriteMemory(vm_address_t address, char *input, size_t size,
+                   bool force = false);
+  std::vector<Process::Region> GetRegions(vm_prot_t options = VM_PROT_READ |
+                                                              VM_PROT_WRITE);
 
-private:
-    pid_t _pid;
-    std::string _name;
-    task_t _task;
-    bool _paused;
+  pid_t process_id() { return _pid; }
+  std::string name() { return _name; }
+  task_t task() { return _task; }
+  bool paused() { return _paused; }
+
+ private:
+  pid_t pid_;
+  std::string name_;
+  task_t task_;
+  bool paused_;  // TODO: don't cache this
 };
