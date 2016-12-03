@@ -6,7 +6,7 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -stdlib=libc++ ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -stdlib=libc++")
 
 file(GLOB_RECURSE reginject_HEADERS "src/*.h")
 
@@ -36,17 +36,17 @@ else()
 endif()
 
 file(GLOB liberation_test_SRC
-        "tests/*.cc"
+        "tests/main.cc"
 )
 
 add_library(reginject STATIC ${liberation_SRC} ${liberation_arch_specific_SRC})
 
 add_executable(reginject_test ${liberation_test_SRC})
 
-target_link_libraries(reginject_test reginject)
+target_link_libraries(reginject_test reginject "-framework Security")
 
 add_custom_target(install
     COMMAND make
-    COMMAND ldid -S ${CMAKE_SOURCE_DIR}/build/reginject
-    COMMAND scp ${CMAKE_SOURCE_DIR}/build/reginject root@$ENV{THEOS_DEVICE_IP}:/usr/bin/reginject
+    COMMAND ldid -S${CMAKE_SOURCE_DIR}/ent.plist ${CMAKE_SOURCE_DIR}/build/reginject_test
+    COMMAND scp -P $ENV{THEOS_DEVICE_PORT} ${CMAKE_SOURCE_DIR}/build/reginject_test root@$ENV{THEOS_DEVICE_IP}:/usr/bin/reginject
 )
