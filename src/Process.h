@@ -80,8 +80,6 @@ class Process {
   static ProcessRef GetProcess(int pid);
   static ProcessRef Self();
 
-  static bool CanAttach();
-
   Process(int pid, const char *name, task_t task)
   : pid_(pid), name_(name), task_(task), paused_(false) {}
 
@@ -105,10 +103,10 @@ class Process {
   std::vector<Process::Region> GetRegions(vm_prot_t options = VM_PROT_READ |
                                                               VM_PROT_WRITE);
 
-  pid_t process_id() { return _pid; }
-  std::string name() { return _name; }
-  task_t task() { return _task; }
-  bool paused() { return _paused; }
+  pid_t process_id() { return pid_; }
+  std::string name() { return name_; }
+  task_t task() { return task_; }
+  bool paused() { return paused_; }
 
  private:
   pid_t pid_;

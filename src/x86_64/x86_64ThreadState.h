@@ -24,6 +24,11 @@ class x86_64ThreadState : public ThreadState {
   virtual bool Save() override;
   virtual vm_address_t CurrentAddress() override;
 
+  x86_thread_state64_t &thread_state() { return thread_state_; }
+  x86_float_state64_t &float_state() { return float_state_; }
+  x86_debug_state64_t &debug_state() { return debug_state_; }
+  x86_exception_state64_t &exception_state() { return exception_state_; }
+
  private:
   x86_thread_state64_t thread_state_;
   x86_float_state64_t float_state_;

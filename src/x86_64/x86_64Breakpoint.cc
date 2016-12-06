@@ -37,23 +37,22 @@ struct dr7_ctx {
 
 // TODO: MAJOR cleanup of the below code
 bool x86_64HardwareBreakpoint::Apply() {
-  pthread_t handle = pthread_self();
-  mach_port_t mach_thread = pthread_mach_thread_np(handle);
-  std::vector<ThreadState *> threads = _proc->Threads(mach_thread);
+  mach_port_t mach_thread = mach_thread_self();
+  std::vector<ThreadState *> threads = proc_->Threads(mach_thread);
 
   for (int i = 0; i < threads.size(); i++) {
     x86_64ThreadState *state = dynamic_cast<x86_64ThreadState *>(threads[i]);
     state->Load();
 
-    x86_debug_state64_t &debug = state->debug_state;
+    x86_debug_state64_t &debug = state->debug_state();
     dr7_ctx dr7 = debug.__dr7;
-    switch (in_use) {
+    switch (in_use_) {
       case 0: {
         dr7.flags_dr0 |= 0x1;    // local
         dr7.size_dr0 |= 0x0;     // 1 byte breakpoint
         dr7.trigger_dr0 |= 0x0;  // trigger on code exec
 
-        debug.__dr0 = _address;
+        debug.__dr0 = address_;
         break;
       }
 
@@ -62,7 +61,7 @@ bool x86_64HardwareBreakpoint::Apply() {
         dr7.size_dr1 |= 0x0;     // 1 byte breakpoint
         dr7.trigger_dr1 |= 0x0;  // trigger on code exec
 
-        debug.__dr1 = _address;
+        debug.__dr1 = address_;
         break;
       }
 
@@ -71,7 +70,7 @@ bool x86_64HardwareBreakpoint::Apply() {
         dr7.size_dr2 |= 0x0;     // 1 byte breakpoint
         dr7.trigger_dr2 |= 0x0;  // trigger on code exec
 
-        debug.__dr2 = _address;
+        debug.__dr2 = address_;
         break;
       }
 
@@ -80,7 +79,7 @@ bool x86_64HardwareBreakpoint::Apply() {
         dr7.size_dr3 |= 0x0;     // 1 byte breakpoint
         dr7.trigger_dr3 |= 0x0;  // trigger on code exec
 
-        debug.__dr3 = _address;
+        debug.__dr3 = address_;
         break;
       }
 
@@ -90,8 +89,8 @@ bool x86_64HardwareBreakpoint::Apply() {
       }
     }
     debug.__dr7 = dr7;
-    in_use++;
-    _active = true;
+    in_use_++;
+    active_ = true;
     state->Save();
   }
   return true;
@@ -102,24 +101,24 @@ bool x86_64HardwareBreakpoint::Reset() {
 
   pthread_t handle = pthread_self();
   mach_port_t mach_thread = pthread_mach_thread_np(handle);
-  std::vector<ThreadState *> threads = _proc->Threads(mach_thread);
+  std::vector<ThreadState *> threads = proc_->Threads(mach_thread);
 
   for (int i = 0; i < threads.size(); i++) {
     x86_64ThreadState *state = dynamic_cast<x86_64ThreadState *>(threads[i]);
     state->Load();
-    x86_debug_state64_t &debug_state = state->debug_state;
+    x86_debug_state64_t &debug_state_ = state->debug_state();
 
     int index = -1;
-    if (debug_state.__dr0 == _address) index = 0;
-    if (debug_state.__dr1 == _address) index = 1;
-    if (debug_state.__dr2 == _address) index = 2;
-    if (debug_state.__dr3 == _address) index = 3;
+    if (debug_state_.__dr0 == address_) index = 0;
+    if (debug_state_.__dr1 == address_) index = 1;
+    if (debug_state_.__dr2 == address_) index = 2;
+    if (debug_state_.__dr3 == address_) index = 3;
 
     if (index == -1) {
       continue;
     }
 
-    dr7_ctx dr7 = debug_state.__dr7;
+    dr7_ctx dr7 = debug_state_.__dr7;
 
     switch (index) {
       case 0: {
@@ -143,28 +142,28 @@ bool x86_64HardwareBreakpoint::Reset() {
       }
     }
 
-    debug_state.__dr7 = dr7;
-    _active = false;
+    debug_state_.__dr7 = dr7;
+    active_ = false;
     state->Save();
   }
   return true;
 }
 
 bool x86_64SoftwareBreakpoint::Apply() {
-  _active = true;
+  active_ = true;
   static uint8_t opcode[] = {0xCC};
 
   uint8_t original[1];
 
-  if (_proc->ReadMemory(_address, (char *)original, 1)) return false;
+  if (proc_->ReadMemory(address_, (char *)original, 1)) return false;
 
-  _originalOpcode.push_back(*original);
+  original_opcode_.push_back(*original);
 
-  return _proc->WriteMemory(_address, (char *)opcode, 1, true);
+  return proc_->WriteMemory(address_, (char *)opcode, 1, true);
 }
 
 bool x86_64SoftwareBreakpoint::Reset() {
-  _active = false;
-  return _proc->WriteMemory(_address, (char *)_originalOpcode.data(),
-                            _originalOpcode.size(), true);
+  active_ = false;
+  return proc_->WriteMemory(address_, (char *)original_opcode_.data(),
+                            original_opcode_.size(), true);
 }

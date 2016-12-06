@@ -63,12 +63,12 @@ void *server_thread(void *arg) {
 
 ThreadState *Exception::ExceptionThreadState() {
   pid_t pid;
-  kern_return_t status = pid_for_task(_task, &pid);
+  kern_return_t status = pid_for_task(task_, &pid);
   if (status != KERN_SUCCESS) return nullptr;
 
   auto proc = Process::GetProcess(pid);
   if (proc) {
-    auto stateWrapper = new Process::ThreadState(proc.get(), _thread);
+    auto stateWrapper = new Process::ThreadState(proc.get(), thread_);
     return stateWrapper->state;
   }
   return nullptr;
@@ -130,12 +130,12 @@ bool ExceptionHandler::SetupHandler() {
 }
 
 kern_return_t ExceptionHandler::ExceptionCallback(Exception &exception) {
-  thread_suspend(exception._thread);
-  _exceptionHistory.push_back(exception);
+  thread_suspend(exception.thread_);  // TODO: make getter
+  exception_history_.push_back(exception);
 
   auto bkptHandler = BreakpointHandler::SharedHandler();
 
-  int type = exception._type;
+  int type = exception.type_;
   // currently only handle breakpoints, pass all other exceptions to parent
   // handler
   if (type != EXC_BREAKPOINT)
@@ -155,10 +155,10 @@ kern_return_t ExceptionHandler::ExceptionCallback(Exception &exception) {
       state->Save();
       delete state;
       bkptHandler->DisableBreakpoint(bkpt);
-      thread_resume(exception._thread);
+      thread_resume(exception.thread_);
       return KERN_SUCCESS;
     }
   }
-  thread_resume(exception._thread);
+  thread_resume(exception.thread_);
   return KERN_FAILURE;  // possibly MIG_DESTROY_REQUEST
 }

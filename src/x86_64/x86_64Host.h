@@ -16,7 +16,7 @@ class x86_64Host : public Host {
  public:
   virtual int HardwareBreakpointCount() override;
   virtual int HardwareWatchpointCount() override;  // unusued in liberation
-  virtual enum Platform Platform() const { return Platform::x86_64; }
+  virtual enum Platform Platform() const override { return Platform::x86_64; }
 };
 
 #else  // we're targeting something else (likely ARM)

@@ -11,16 +11,6 @@
 #include "Host.h"
 #include "Process.h"
 
-#import <CoreFoundation/CoreFoundation.h>
-#import <Security/Security.h>
-
-typedef const void *SecTaskRef;
-extern "C" SecTaskRef SecTaskCreateFromSelf(CFAllocatorRef allocator);
-
-extern "C" CFTypeRef SecTaskCopyValueForEntitlement(SecTaskRef task,
-                                                    CFStringRef entitlement,
-                                                    CFErrorRef *error);
-
 #define PROC_ALL_PIDS 1
 
 // cba to include
@@ -122,33 +112,34 @@ ProcessRef Process::Self() {
   return std::make_shared<Process>(pid, name, task /*, plt*/);
 }
 
-// TODO: make this a member function and check if is Process::Self()
-bool Process::CanAttach() {
-  // assume the build is linked against CoreFoundation and Security
-  SecTaskRef task = SecTaskCreateFromSelf(kCFAllocatorDefault);
-  CFTypeRef tfp =
-      SecTaskCopyValueForEntitlement(task, CFSTR("task_for_pid-allow"), NULL);
-
-  return tfp;
-}
+// // TODO: make this a member function and check if is Process::Self()
+// bool Process::CanAttach() {
+//   // assume the build is linked against CoreFoundation and Security
+//   SecTaskRef task = SecTaskCreateFromSelf(kCFAllocatorDefault);
+//   CFTypeRef tfp =
+//       SecTaskCopyValueForEntitlement(task, CFSTR("task_for_pid-allow"),
+//       NULL);
+//
+//   return tfp;
+// }
 
 bool Process::IsAlive() {
-  return ProcessExists(this->process_id());
+  return ProcessExists(pid_);
 }
 
 bool Process::Kill() {
-  return kill(this->process_id(), SIGKILL);
+  return kill(pid_, SIGKILL);
 }
 
 // TODO: figure out how to pause our own process without freezing
 bool Process::Pause() {
-  _paused = true;
-  return (task_suspend(this->task()) == KERN_SUCCESS);
+  paused_ = true;
+  return (task_suspend(task_) == KERN_SUCCESS);
 }
 
 bool Process::Resume() {
-  _paused = false;
-  return (task_resume(this->task()) == KERN_SUCCESS);
+  paused_ = false;
+  return (task_resume(task_) == KERN_SUCCESS);
 }
 
 bool Process::InjectLibrary(const char *lib) {
@@ -157,7 +148,7 @@ bool Process::InjectLibrary(const char *lib) {
 }
 
 Platform Process::RunningPlatform() {
-  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, _pid};
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid_};
   struct kinfo_proc kp;
   size_t bufsize = sizeof(kp);
   int err = sysctl(mib, sizeof(mib) / sizeof(int), &kp, &bufsize, NULL, 0);
@@ -178,7 +169,7 @@ std::vector<::ThreadState *> Process::Threads(mach_port_t ignore) {
 
   thread_act_port_array_t threads;
   mach_msg_type_number_t count;
-  task_threads(_task, &threads, &count);
+  task_threads(task_, &threads, &count);
 
   for (int i = 0; i < count; i++) {
     if (threads[i] == ignore) continue;
@@ -207,7 +198,7 @@ std::vector<::ThreadState *> Process::Threads(mach_port_t ignore) {
 
 bool Process::ReadMemory(vm_address_t address, char *output, size_t size) {
   vm_size_t sz;
-  krncall(vm_read_overwrite(_task, address, size, (vm_address_t)output, &sz));
+  krncall(vm_read_overwrite(task_, address, size, (vm_address_t)output, &sz));
   return KERN_SUCCESS;
 }
 
@@ -215,14 +206,14 @@ bool Process::WriteMemory(vm_address_t address, char *input, size_t size,
                           bool force) {
   if (force) {
     krncall(vm_protect(
-        _task, address, size, false,
+        task_, address, size, false,
         VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE | VM_PROT_COPY));
-    krncall(vm_write(_task, address, (vm_offset_t)input, size));
+    krncall(vm_write(task_, address, (vm_offset_t)input, size));
     // TODO: use vm_region(_xx) to get original prot to restore here
-    krncall(vm_protect(_task, address, size, false,
+    krncall(vm_protect(task_, address, size, false,
                        VM_PROT_READ | VM_PROT_EXECUTE));
   } else {
-    krncall(vm_write(_task, address, (vm_offset_t)input, size));
+    krncall(vm_write(task_, address, (vm_offset_t)input, size));
   }
   return true;
 }
@@ -238,7 +229,7 @@ std::vector<Process::Region> Process::GetRegions(vm_prot_t options) {
   while (status == KERN_SUCCESS) {
     struct vm_region_submap_info_xx info;
     mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_XX;
-    status = vm_region_recurse_xx(_task, &address, &size, &depth,
+    status = vm_region_recurse_xx(task_, &address, &size, &depth,
                                   (vm_region_info_xx_t)&info, &count);
 
     if (status == KERN_INVALID_ADDRESS) break;

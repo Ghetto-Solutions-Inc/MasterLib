@@ -20,19 +20,19 @@ using BreakpointCallback = std::function<void(ThreadState &)>;
 class Breakpoint {
  public:
   Breakpoint(Process *proc, vm_address_t address)
-  : _address(address), _proc(proc) {}
+  : address_(address), proc_(proc) {}
   virtual ~Breakpoint() {}
 
   virtual bool Apply() = 0;
   virtual bool Reset() = 0;
 
-  virtual void AddCallback(BreakpointCallback cb) { _callback = cb; }
+  void SetCallback(BreakpointCallback cb) { callback_ = cb; }
 
   bool active() const { return active_; }
   vm_address_t address() const { return address_; }
   BreakpointCallback callback() const { return callback_; }
 
- private:
+ protected:
   bool active_;
   vm_address_t address_;
   Process *proc_;

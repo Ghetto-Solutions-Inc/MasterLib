@@ -16,11 +16,11 @@ std::shared_ptr<BreakpointHandler> BreakpointHandler::SharedHandler() {
 
 bool BreakpointHandler::InstallBreakpoint(Breakpoint *bp, bool immActive) {
   if (bp) {
-    _breakpoints.push_back(bp);
+    breakpoints_.push_back(bp);
     if (immActive) {
       bool success = bp->Apply();
       if (!success) {
-        _breakpoints.pop_back();
+        breakpoints_.pop_back();
         return false;
       }
     }
@@ -29,11 +29,11 @@ bool BreakpointHandler::InstallBreakpoint(Breakpoint *bp, bool immActive) {
 }
 
 bool BreakpointHandler::UninstallBreakpoint(Breakpoint *bp) {
-  for (auto it = _breakpoints.begin(); it != _breakpoints.end(); ++it) {
+  for (auto it = breakpoints_.begin(); it != breakpoints_.end(); ++it) {
     if (*it == bp) {
       bool success = (*it)->Reset();
       if (!success) return false;
-      _breakpoints.erase(it);
+      breakpoints_.erase(it);
     }
   }
   return false;
@@ -48,7 +48,7 @@ bool BreakpointHandler::DisableBreakpoint(Breakpoint *bp) {
 }
 
 Breakpoint *BreakpointHandler::BreakpointAtAddress(vm_address_t address) {
-  for (Breakpoint *bp : _breakpoints) {
+  for (Breakpoint *bp : breakpoints_) {
     if (bp->address() == address) return bp;
   }
   return nullptr;
@@ -56,7 +56,7 @@ Breakpoint *BreakpointHandler::BreakpointAtAddress(vm_address_t address) {
 
 std::vector<Breakpoint *> BreakpointHandler::Breakpoints(uint32_t flags) {
   std::vector<Breakpoint *> local;
-  for (Breakpoint *bp : _breakpoints) {
+  for (Breakpoint *bp : breakpoints_) {
     if (flags & BKPT_ENABLED) {
       if (bp->active()) local.push_back(bp);
     }

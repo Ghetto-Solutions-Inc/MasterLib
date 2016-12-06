@@ -14,7 +14,7 @@ class NOPThreadState : public ThreadState {
  public:
   NOPThreadState(mach_port_t thread) : ThreadState(thread) {}
 
-  virtual std::string Description() {
+  virtual std::string Description() override {
     throw std::runtime_error("NOP implementation called");
   };
 
