@@ -17,7 +17,9 @@ foreach (_headerFile ${masterlib_HEADERS})
 endforeach()
 list(REMOVE_DUPLICATES masterlib_INCLUDE_DIRS)
 
-include_directories(${masterlib_INCLUDE_DIRS})
+target_include_directories(masterlib PUBLIC
+  $<BUILD_INTERFACE:${masterlib_INCLUDE_DIRS}>
+  $<INSTALL_INTERFACE:${masterlib_INCLUDE_DIRS}>)
 
 file(GLOB liberation_SRC
    "src/*.cc"
@@ -39,7 +41,7 @@ file(GLOB liberation_test_SRC
         "tests/main.cc"
 )
 
-add_library(masterlib STATIC ${liberation_SRC} ${liberation_arch_specific_SRC} ${masterlib_HEADERS})
+add_library(masterlib STATIC ${liberation_SRC} ${liberation_arch_specific_SRC})
 
 add_executable(masterlib_test ${liberation_test_SRC})
 
