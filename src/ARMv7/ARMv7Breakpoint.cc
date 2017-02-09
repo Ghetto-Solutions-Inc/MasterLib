@@ -27,16 +27,16 @@ bool ARMv7SoftwareBreakpoint::Apply() {
 
   uint8_t original[4];
 
-  if (_proc->ReadMemory(_address, (char *)original, 4)) return false;
+  if (proc_->ReadMemory(address_, (char *)original, 4)) return false;
 
-  _originalOpcode.assign(original, original + 4);
+  original_opcode_.assign(original, original + 4);
 
-  return _proc->WriteMemory(_address, (char *)opcode, sizeof(opcode), true);
+  return proc_->WriteMemory(address_, (char *)opcode, sizeof(opcode), true);
 }
 
 bool ARMv7SoftwareBreakpoint::Reset() {
-  return _proc->WriteMemory(_address, (char *)_originalOpcode.data(),
-                            _originalOpcode.size(), true);
+  return proc_->WriteMemory(address_, (char *)original_opcode_.data(),
+                            original_opcode_.size(), true);
 }
 
 bool THUMBv7SoftwareBreakpoint::Apply() {
@@ -45,11 +45,11 @@ bool THUMBv7SoftwareBreakpoint::Apply() {
 
   uint8_t original[2];
 
-  if (_proc->ReadMemory(_address, (char *)original, 2)) return false;
+  if (proc_->ReadMemory(address_, (char *)original, 2)) return false;
 
-  _originalOpcode.assign(original, original + 2);
+  original_opcode_.assign(original, original + 2);
 
-  return _proc->WriteMemory(_address, (char *)opcode, sizeof(opcode), true);
+  return proc_->WriteMemory(address_, (char *)opcode, sizeof(opcode), true);
 }
 
 bool THUMBv7SoftwareBreakpoint::Reset() {

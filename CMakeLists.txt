@@ -17,10 +17,6 @@ foreach (_headerFile ${masterlib_HEADERS})
 endforeach()
 list(REMOVE_DUPLICATES masterlib_INCLUDE_DIRS)
 
-target_include_directories(masterlib PUBLIC
-  $<BUILD_INTERFACE:${masterlib_INCLUDE_DIRS}>
-  $<INSTALL_INTERFACE:${masterlib_INCLUDE_DIRS}>)
-
 file(GLOB liberation_SRC
    "src/*.cc"
    "src/*.c"
@@ -44,6 +40,10 @@ file(GLOB liberation_test_SRC
 add_library(masterlib STATIC ${liberation_SRC} ${liberation_arch_specific_SRC})
 
 add_executable(masterlib_test ${liberation_test_SRC})
+
+target_include_directories(masterlib PUBLIC
+  $<BUILD_INTERFACE:${masterlib_INCLUDE_DIRS}>
+  $<INSTALL_INTERFACE:${masterlib_INCLUDE_DIRS}>)
 
 target_link_libraries(masterlib_test masterlib "-framework Security")
 

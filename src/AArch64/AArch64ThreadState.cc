@@ -13,22 +13,22 @@ bool AArch64ThreadState::Load() {
   mach_msg_type_number_t count;
 
   count = ARM_THREAD_STATE64_COUNT;
-  thread_get_state(_thread, ARM_THREAD_STATE64, (thread_state_t)&thread_state,
+  thread_get_state(thread_, ARM_THREAD_STATE64, (thread_state_t)&thread_state_,
                    &count);
 
   count = ARM_NEON_STATE64_COUNT;
-  thread_get_state(_thread, ARM_NEON_STATE64, (thread_state_t)&neon_state,
+  thread_get_state(thread_, ARM_NEON_STATE64, (thread_state_t)&neon_state_,
                    &count);
 
   count = ARM_EXCEPTION_STATE64_COUNT;
-  thread_get_state(_thread, ARM_EXCEPTION_STATE64,
-                   (thread_state_t)&exception_state, &count);
+  thread_get_state(thread_, ARM_EXCEPTION_STATE64,
+                   (thread_state_t)&exception_state_, &count);
 
   count = ARM_DEBUG_STATE64_COUNT;
-  thread_get_state(_thread, ARM_DEBUG_STATE64, (thread_state_t)&debug_state,
+  thread_get_state(thread_, ARM_DEBUG_STATE64, (thread_state_t)&debug_state_,
                    &count);
 
-  uint64_t *threadPtr = (uint64_t *)&thread_state;
+  uint64_t *threadPtr = (uint64_t *)&thread_state_;
 
   // TODO: push Wx registers
   STATE_ADD_REGISTER(this, "X0", threadPtr + 0);
@@ -68,21 +68,21 @@ bool AArch64ThreadState::Load() {
   STATE_ADD_REGISTER(this, "PC", threadPtr + 34);
 
   // CPSR and PAD are 32 bits
-  STATE_ADD_REGISTER(this, "CPSR", &thread_state.__cpsr);
-  STATE_ADD_REGISTER(this, "PAD", &thread_state.__pad);
+  STATE_ADD_REGISTER(this, "CPSR", &thread_state_.__cpsr);
+  STATE_ADD_REGISTER(this, "PAD", &thread_state_.__pad);
 
   return true;
 }
 
 bool AArch64ThreadState::Save() {
-  thread_set_state(_thread, ARM_THREAD_STATE64, (thread_state_t)&thread_state,
+  thread_set_state(thread_, ARM_THREAD_STATE64, (thread_state_t)&thread_state_,
                    ARM_THREAD_STATE64_COUNT);
-  thread_set_state(_thread, ARM_NEON_STATE64, (thread_state_t)&neon_state,
+  thread_set_state(thread_, ARM_NEON_STATE64, (thread_state_t)&neon_state_,
                    ARM_NEON_STATE64_COUNT);
-  thread_set_state(_thread, ARM_EXCEPTION_STATE64,
-                   (thread_state_t)&exception_state,
+  thread_set_state(thread_, ARM_EXCEPTION_STATE64,
+                   (thread_state_t)&exception_state_,
                    ARM_EXCEPTION_STATE64_COUNT);
-  thread_set_state(_thread, ARM_DEBUG_STATE64, (thread_state_t)&debug_state,
+  thread_set_state(thread_, ARM_DEBUG_STATE64, (thread_state_t)&debug_state_,
                    ARM_DEBUG_STATE64_COUNT);
 
   return true;
@@ -91,7 +91,7 @@ bool AArch64ThreadState::Save() {
 std::string AArch64ThreadState::Description() {
   std::ostringstream stream;
 
-  for (auto &reg : _registers) {
+  for (auto &reg : registers_) {
     uint64_t val;
     if (reg.Name() == "CPSR" || reg.Name() == "PAD") {
       val = reg.Value<uint32_t>();
@@ -105,5 +105,5 @@ std::string AArch64ThreadState::Description() {
 }
 
 vm_address_t AArch64ThreadState::CurrentAddress() {
-  return thread_state.__pc;
+  return thread_state_.__pc;
 }

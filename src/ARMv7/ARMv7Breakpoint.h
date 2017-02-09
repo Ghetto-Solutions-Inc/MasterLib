@@ -29,7 +29,7 @@ class ARMv7SoftwareBreakpoint : public Breakpoint {
   virtual bool Apply() override;
   virtual bool Reset() override;
 
- private:
+ protected:
   std::vector<uint8_t> original_opcode_;
 };
 
