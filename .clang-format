@@ -8,5 +8,5 @@ SpaceAfterCStyleCast: false
 TabWidth: '2'
 UseTab: Never
 ConstructorInitializerIndentWidth: 0
-
+ColumnLimit: 120
 ...
