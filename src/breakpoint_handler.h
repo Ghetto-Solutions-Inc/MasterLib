@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "Breakpoint.h"
-#include "Process.h"
+#include "breakpoint.h"
+#include "process.h"
 
 #define BKPT_ENABLED (1 << 0)
 #define BKPT_DISABLED (1 << 1)

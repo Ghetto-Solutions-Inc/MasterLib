@@ -10,10 +10,10 @@
 #include <pthread.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "BreakpointHandler.h"
-#include "ExceptionHandler.h"
-#include "Host.h"
-#include "Process.h"
+#include "breakpoint_handler.h"
+#include "exception_handler.h"
+#include "host.h"
+#include "process.h"
 #include "mach_exc.h"
 
 extern "C" boolean_t mach_exc_server(mach_msg_header_t *, mach_msg_header_t *);

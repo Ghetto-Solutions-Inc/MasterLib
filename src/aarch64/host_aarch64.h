@@ -16,7 +16,7 @@ class AArch64Host : public Host {
  public:
   virtual int HardwareBreakpointCount() override;
   virtual int HardwareWatchpointCount() override;  // unusued in liberation
-  virtual enum Platform Platform() const { return Platform::AArch64; }
+  virtual enum Platform Platform() const override { return Platform::AArch64; }
 };
 
 #else

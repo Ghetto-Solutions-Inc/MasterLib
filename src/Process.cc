@@ -8,8 +8,8 @@
 
 #include <stdlib.h>
 #include <sys/sysctl.h>
-#include "Host.h"
-#include "Process.h"
+#include "host.h"
+#include "process.h"
 
 #define PROC_ALL_PIDS 1
 
@@ -176,7 +176,7 @@ std::vector<::ThreadState *> Process::Threads(mach_port_t ignore) {
 
     switch (plt) {
       case Platform::x86_64: {
-        local.push_back(new x86_64ThreadState(threads[i]));
+        //local.push_back(new x86_64ThreadState(threads[i]));
         break;
       }
 
@@ -270,15 +270,15 @@ Process::ThreadState::ThreadState(Process *proc, mach_port_t thread)
         break;
       }
       case Platform::x86_64: {
-        state = new x86_64ThreadState(thread);
+        //state = new x86_64ThreadState(thread);
         break;
       }
       default: {
-        state = new NOPThreadState(thread);
+        //state = new NOPThreadState(thread);
         break;
       }
     }
   } else {
-    state = new NOPThreadState(thread);
+    //state = new NOPThreadState(thread);
   }
 }

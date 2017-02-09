@@ -12,12 +12,12 @@
 #include <sys/types.h>
 #include <string>
 #include <vector>
-#include "Host.h"
-#include "ThreadState.h"
+#include "host.h"
+#include "thread_state.h"
 
 // TODO: find a vetter way to do this
 // TODO: check if vm_region_64 works correctly when targeting 32 bit processes
-#ifdef __LP64__  // 64 bit functions
+#if 1
 
 #define vm_region_basic_info_data_xx_t vm_region_basic_info_data_64_t
 #define vm_region_info_xx_t vm_region_info_64_t

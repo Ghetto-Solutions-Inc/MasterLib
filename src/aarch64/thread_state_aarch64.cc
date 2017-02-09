@@ -7,7 +7,7 @@
 //
 
 #include <sstream>
-#include "AArch64ThreadState.h"
+#include "thread_state_aarch64.h"
 
 bool AArch64ThreadState::Load() {
   mach_msg_type_number_t count;

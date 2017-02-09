@@ -7,7 +7,7 @@
 //
 
 #include <sstream>
-#include "ARMv7ThreadState.h"
+#include "thread_state_armv7.h"
 
 bool ARMv7ThreadState::Load() {
   mach_msg_type_number_t count;

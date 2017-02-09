@@ -10,7 +10,7 @@
 
 #include <memory>
 #include <vector>
-#include "ThreadState.h"
+#include "thread_state.h"
 
 // TODO: be bothered to make getters for this
 class Exception {

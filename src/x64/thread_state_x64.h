@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "ThreadState.h"
+#include "thread_state.h"
 
 #if defined(__i386__) || defined(__x86_64__)  // we're targeting an x86 system
 
@@ -37,8 +37,5 @@ class x86_64ThreadState : public ThreadState {
 };
 
 #else  // we're targeting something else (likely ARM)
-
-#include "NOPThreadState.h"
-using x86_64ThreadState = NOPThreadState;
 
 #endif /* _x86_64_ */

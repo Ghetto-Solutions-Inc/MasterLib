@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Host.h"
+#include "host.h"
 
 #if defined(__arm__) || defined(__arm64__)
 
@@ -15,7 +15,7 @@ class ARMv7Host : public Host {
 
 #else
 
-#include "NOPHost.h"
+#include "nop_host.h"
 
 using ARMv7Host = NOPHost;
 

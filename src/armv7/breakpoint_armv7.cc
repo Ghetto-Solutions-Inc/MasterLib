@@ -6,9 +6,9 @@
 //  Copyright © 2016 satori. All rights reserved.
 //
 
-#include "ARMv7Breakpoint.h"
-#include "Process.h"
-#include "ThreadState.h"
+#include "breakpoint_armv7.h"
+#include "process.h"
+#include "thread_state.h"
 
 bool ARMv7HardwareBreakpoint::Apply() {
   // if (HardwareSlotsLeft()) {

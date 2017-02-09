@@ -70,6 +70,6 @@ class ThreadState {
   std::vector<Register> registers_;
 };
 
-#include "AArch64/AArch64ThreadState.h"
-#include "ARMv7/ARMv7ThreadState.h"
-#include "x86_64/x86_64ThreadState.h"
+#include "aarch64/thread_state_aarch64.h"
+#include "armv7/thread_state_armv7.h"
+#include "x64/thread_state_x64.h"

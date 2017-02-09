@@ -7,7 +7,7 @@
 //
 
 #include <sys/sysctl.h>
-#include "AArch64Host.h"
+#include "host_aarch64.h"
 
 int AArch64Host::HardwareBreakpointCount() {
   // for some stupid reason, ARMv8 prevents the debug information register

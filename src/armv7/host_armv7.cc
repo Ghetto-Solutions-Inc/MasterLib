@@ -6,7 +6,7 @@
 //  Copyright © 2016 satori. All rights reserved.
 //
 
-#include "ARMv7Host.h"
+#include "host_armv7.h"
 
 int ARMv7Host::HardwareBreakpointCount() {
 #ifdef __arm__

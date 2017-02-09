@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Breakpoint.h"
+#include "breakpoint.h"
 
 #if defined(__arm__) || defined(__arm64__)
 

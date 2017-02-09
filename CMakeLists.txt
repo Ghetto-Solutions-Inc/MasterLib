@@ -20,16 +20,20 @@ list(REMOVE_DUPLICATES masterlib_INCLUDE_DIRS)
 file(GLOB liberation_SRC
    "src/*.cc"
    "src/*.c"
+   "src/*.h"
 )
 
 if (NOT DEFINED IOS_PLATFORM)
     file(GLOB liberation_arch_specific_SRC
-        "src/x86_64/*.cc"
+        "src/x64/*.cc"
+        "src/x64/*.h"
     )
 else()
     file(GLOB liberation_arch_specific_SRC
-        "src/ARMv7/*.cc"
-        "src/AArch64/*.cc"
+        "src/aarch64/*.cc"
+        "src/arch64/*.h"
+        "src/armv7/*.cc"
+        "src/armv7/*.h"
     )
 endif()
 
@@ -44,6 +48,12 @@ add_executable(masterlib_test ${liberation_test_SRC})
 target_include_directories(masterlib PUBLIC
   $<BUILD_INTERFACE:${masterlib_INCLUDE_DIRS}>
   $<INSTALL_INTERFACE:${masterlib_INCLUDE_DIRS}>)
+
+set(CMAKE_MACOSX_BUNDLE YES)
+
+set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.satorify")
+set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
+set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Don't Code Sign")
 
 target_link_libraries(masterlib_test masterlib "-framework Security")
 

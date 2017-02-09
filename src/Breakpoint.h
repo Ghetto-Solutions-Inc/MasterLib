@@ -12,8 +12,8 @@
 #include <functional>
 #include <vector>
 
-#include "Process.h"
-#include "ThreadState.h"
+#include "process.h"
+#include "thread_state.h"
 
 using BreakpointCallback = std::function<void(ThreadState &)>;
 
