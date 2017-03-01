@@ -35,10 +35,4 @@ class ARMv7ThreadState : public ThreadState {
   arm_debug_state_t debug_state_;
 };
 
-#else
-
-#include "NOPThreadState.h"
-
-using ARMv7ThreadState = NOPThreadState;
-
 #endif

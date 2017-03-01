@@ -1,6 +1,6 @@
 //
-//  x86_64ThreadState.h
-//  Liberation
+//  thread_state_x64.h
+//  MasterLib
 //
 //  Created by satori
 //  Copyright © 2016 satori. All rights reserved.
@@ -15,9 +15,9 @@
 extern const char *thread_registers[];
 extern const char *debug_registers[];
 
-class x86_64ThreadState : public ThreadState {
+class x64ThreadState : public ThreadState {
  public:
-  x86_64ThreadState(mach_port_t thread) : ThreadState(thread) {}
+  x64ThreadState(mach_port_t thread) : ThreadState(thread) {}
 
   virtual std::string Description() override;
   virtual bool Load() override;

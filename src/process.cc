@@ -176,10 +176,10 @@ std::vector<::ThreadState *> Process::Threads(mach_port_t ignore) {
 
     switch (plt) {
       case Platform::x86_64: {
-        //local.push_back(new x86_64ThreadState(threads[i]));
+        local.push_back(new x64ThreadState(threads[i]));
         break;
       }
-
+#ifdef __arm__
       case Platform::ARMv7: {
         local.push_back(new ARMv7ThreadState(threads[i]));
         break;
@@ -189,6 +189,7 @@ std::vector<::ThreadState *> Process::Threads(mach_port_t ignore) {
         local.push_back(new AArch64ThreadState(threads[i]));
         break;
       }
+#endif
       default:
         break;
     }
@@ -261,6 +262,7 @@ Process::ThreadState::ThreadState(Process *proc, mach_port_t thread)
 : state(nullptr) {
   if (proc) {
     switch (proc->RunningPlatform()) {
+#ifdef __arm__
       case Platform::ARMv7: {
         state = new ARMv7ThreadState(thread);
         break;
@@ -269,6 +271,7 @@ Process::ThreadState::ThreadState(Process *proc, mach_port_t thread)
         state = new AArch64ThreadState(thread);
         break;
       }
+#endif
       case Platform::x86_64: {
         //state = new x86_64ThreadState(thread);
         break;

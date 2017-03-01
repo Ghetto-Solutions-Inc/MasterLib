@@ -9,8 +9,8 @@
 #include <thread>
 #include "Host.h"
 #include "Process.h"
-#include "x86_64Breakpoint.h"
-#include "x86_64ThreadState.h"
+#include "breakpoint_x64.h"
+#include "thread_state_x64.h"
 
 // structure representing the debug register dr7
 struct dr7_ctx {
@@ -41,7 +41,7 @@ bool x86_64HardwareBreakpoint::Apply() {
   std::vector<ThreadState *> threads = proc_->Threads(mach_thread);
 
   for (int i = 0; i < threads.size(); i++) {
-    x86_64ThreadState *state = dynamic_cast<x86_64ThreadState *>(threads[i]);
+    x64ThreadState *state = dynamic_cast<x64ThreadState *>(threads[i]);
     state->Load();
 
     x86_debug_state64_t &debug = state->debug_state();
@@ -104,7 +104,7 @@ bool x86_64HardwareBreakpoint::Reset() {
   std::vector<ThreadState *> threads = proc_->Threads(mach_thread);
 
   for (int i = 0; i < threads.size(); i++) {
-    x86_64ThreadState *state = dynamic_cast<x86_64ThreadState *>(threads[i]);
+    x64ThreadState *state = dynamic_cast<x64ThreadState *>(threads[i]);
     state->Load();
     x86_debug_state64_t &debug_state_ = state->debug_state();
 

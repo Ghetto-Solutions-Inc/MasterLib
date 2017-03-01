@@ -6,7 +6,7 @@
 //  Copyright © 2016 satori. All rights reserved.
 //
 
-#include "x86_64Host.h"
+#include "host_x64.h"
 
 int x86_64Host::HardwareBreakpointCount() {
   return 4;  // always 4

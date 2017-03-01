@@ -73,3 +73,4 @@ class ThreadState {
 #include "aarch64/thread_state_aarch64.h"
 #include "armv7/thread_state_armv7.h"
 #include "x64/thread_state_x64.h"
+#include "x86/thread_state_x86.h"

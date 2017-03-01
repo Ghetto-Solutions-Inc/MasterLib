@@ -27,6 +27,8 @@ if (NOT DEFINED IOS_PLATFORM)
     file(GLOB liberation_arch_specific_SRC
         "src/x64/*.cc"
         "src/x64/*.h"
+        "src/x86/*.cc"
+        "src/x86/*.h"
     )
 else()
     file(GLOB liberation_arch_specific_SRC
@@ -40,6 +42,8 @@ endif()
 file(GLOB liberation_test_SRC
         "tests/main.cc"
 )
+
+add_subdirectory("${CMAKE_SOURCE_DIR}/third_party/capstone")
 
 add_library(masterlib STATIC ${liberation_SRC} ${liberation_arch_specific_SRC})
 
@@ -55,10 +59,11 @@ set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.satorify")
 set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
 set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Don't Code Sign")
 
-target_link_libraries(masterlib_test masterlib "-framework Security")
+target_link_libraries(masterlib capstone-static)
+target_link_libraries(masterlib_test masterlib)
 
-add_custom_target(install
-    COMMAND make
-    COMMAND ldid -S${CMAKE_SOURCE_DIR}/ent.plist ${CMAKE_SOURCE_DIR}/build/masterlib_test
-    COMMAND scp -P $ENV{THEOS_DEVICE_PORT} ${CMAKE_SOURCE_DIR}/build/masterlib_test root@$ENV{THEOS_DEVICE_IP}:/usr/bin/masterlib
-)
+# add_custom_target(install
+#     COMMAND make
+#     COMMAND ldid -S${CMAKE_SOURCE_DIR}/ent.plist ${CMAKE_SOURCE_DIR}/build/masterlib_test
+#     COMMAND scp -P $ENV{THEOS_DEVICE_PORT} ${CMAKE_SOURCE_DIR}/build/masterlib_test root@$ENV{THEOS_DEVICE_IP}:/usr/bin/masterlib
+# )

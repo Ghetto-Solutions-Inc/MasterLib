@@ -29,10 +29,4 @@ class AArch64ThreadState : public ThreadState {
   arm_debug_state64_t debug_state_;
 };
 
-#else
-
-#include "NOPThreadState.h"
-
-using AArch64ThreadState = NOPThreadState;
-
 #endif
