@@ -21,11 +21,11 @@
 //}
 
 
-const uint8_t code[] = { 0x5D };
+const uint8_t code[] = { 0x00, 0x00, 0xA0, 0xE3 };
 
 int main() {
-    Disassembler ds = Disassembler(0x0, code, 1);
+    Disassembler ds = Disassembler(0x0, code, 4, Arch::ARM, Mode::ModeARM);
     ds.Setup();
     auto instr = ds.Disassemble();
-    std::cout << instr.mnemonic() << std::endl << instr.operands() << std::endl;
+    std::cout << instr.mnemonic() << " " << instr.operands() << std::endl;
 }

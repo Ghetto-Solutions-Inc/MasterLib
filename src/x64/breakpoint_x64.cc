@@ -7,8 +7,8 @@
 //
 
 #include <thread>
-#include "Host.h"
-#include "Process.h"
+#include "host.h"
+#include "process.h"
 #include "breakpoint_x64.h"
 #include "thread_state_x64.h"
 

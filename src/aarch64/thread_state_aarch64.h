@@ -9,7 +9,7 @@
 #pragma once
 
 #include <sys/types.h>
-#include "thread_State.h"
+#include "thread_state.h"
 
 #if defined(__arm__) || defined(__arm64__)
 

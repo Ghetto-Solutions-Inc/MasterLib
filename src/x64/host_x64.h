@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Host.h"
+#include "host.h"
 
 #if defined(__i386__) || defined(__x86_64__)  // we're targeting an x86 system
 
