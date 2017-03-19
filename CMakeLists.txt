@@ -33,7 +33,7 @@ if (NOT DEFINED IOS_PLATFORM)
 else()
     file(GLOB liberation_arch_specific_SRC
         "src/aarch64/*.cc"
-        "src/arch64/*.h"
+        "src/aarch64/*.h"
         "src/armv7/*.cc"
         "src/armv7/*.h"
     )
