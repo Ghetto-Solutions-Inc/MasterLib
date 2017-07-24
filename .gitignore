@@ -5,5 +5,5 @@ build
 
 cmake-build-debug/
 cmake-build-release/
-cmake-build-release1/
+cmake-build-release-1/
 .idea/
