@@ -12,8 +12,10 @@
 #include <signal.h>
 #include <sys/sysctl.h>
 #include <mach-o/dyld.h>
-#include <mach/mach_vm.h>
-#include "libproc.h"
+
+#include "missing/libproc.h"
+#include "missing/mach_vm.h"
+
 #include "process.h"
 
 
@@ -121,6 +123,7 @@ bool Process::Kill() {
             case ESRCH: {
                 // process not found
                 // throw exception?
+                // for now pass through to default case
             }
             default: {
                 return false;
@@ -348,7 +351,7 @@ enum Architecture Process::Architecture() {
     if (err != 0) return Architecture::UNKNOWN;
 
 #if defined(__arm__) || defined(__arm64__)
-    return (kp.kp_proc.p_flag & P_LP64) ? Platform::AArch64 : Platform::ARMv7;
+    return (kp.kp_proc.p_flag & P_LP64) ? Architecture::AArch64 : Architecture::ARMv7;
 #elif defined(__i386__) || defined(__x86_64__)
     return (kp.kp_proc.p_flag & P_LP64) ? Architecture::x86_64 : Architecture::x86;
 #endif
