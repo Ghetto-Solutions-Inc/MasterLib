@@ -8,9 +8,10 @@ endif()
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(GLOB_RECURSE masterlib_HEADER_FILES "src/*.h")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
+
+file(GLOB_RECURSE masterlib_HEADER_FILES  "src/*.h")
 file(GLOB_RECURSE masterlib_SRC_FILES "src/*.cc")
 
 set (masterlib_INCLUDE_DIRS "")
