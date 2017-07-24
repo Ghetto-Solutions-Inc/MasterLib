@@ -36,12 +36,13 @@
 #include <sys/mount.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <sys/kern_control.h>
 #include <net/if.h>
-#include <net/route.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
+// missing defs on iOS
+#include "missing/net/route.h"
+#include "missing/sys/kern_control.h"
 __BEGIN_DECLS
 
 
