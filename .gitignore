@@ -3,7 +3,5 @@ build
 
 *.bak
 
-cmake-build-debug/
-cmake-build-release/
-cmake-build-release-1/
+cmake-build-*/
 .idea/
