@@ -17,9 +17,9 @@ int main() {
     auto region = self->RegionForAddress((vm_address_t)_dyld_get_image_header(0));
 
     print_region(region);
-    std::cout << std::hex << _dyld_get_image_header(0) << std::endl;
+    std::cout << std::hex << _dyld_get_image_header(0) << std::endl << "--------" << std::endl;
 
-    for (const auto& region: self->GetRegions()) {
+    for (const auto& region: self->GetRegions(VM_PROT_READ | VM_PROT_EXECUTE)) {
         print_region(region);
     }
 
