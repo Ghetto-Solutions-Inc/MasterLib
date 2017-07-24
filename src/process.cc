@@ -376,7 +376,8 @@ pid_t Process::PIDForName(std::string name) {
             return pids[i];
         }
     }
-    return 0xFFFFFFFF; // not great returning a possible pid number
+    // not great returning a possible pid number but as its only used internally who cares
+    return 0xFFFFFFFF;
 }
 
 std::string Process::NameForPID(pid_t pid) {
