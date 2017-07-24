@@ -1,31 +1,26 @@
-#include "../src/disassembler.h"
 #include <iostream>
+#include <process.h>
+#include <mach-o/dyld.h>
+using masterlib::Process;
 
-//std::string ProtToString(vm_prot_t prot) {
-//  std::string str = "";
-//  if (prot & VM_PROT_READ)
-//    str += "R";
-//  if (prot & VM_PROT_WRITE)
-//    str += "W";
-//  if (prot & VM_PROT_EXECUTE)
-//    str += "X";
-//
-//  return str;
-//}
-
-//int main(int argc, char **argv) {
-//    x86ThreadState *state = new x86ThreadState(mach_thread_self());
-//    state->Load();
-//    
-//    std::cout << state->Description() << std::endl;
-//}
-
-
-const uint8_t code[] = { 0x5D };
+inline void print_region(const Process::Region &region) {
+    std::cout << std::hex << region.start() << " "
+              << std::hex << region.size() << " "
+              << std::hex << region.prot() << std::endl;
+}
 
 int main() {
-    Disassembler ds = Disassembler(0x0, code, 1);
-    ds.Setup();
-    auto instr = ds.Disassemble();
-    std::cout << instr.mnemonic() << std::endl << instr.operands() << std::endl;
+    Process *self = Process::self;
+
+    std::cout << self->pid() << " " << self->name() << " " << self->path() << std::endl;
+
+    auto region = self->RegionForAddress((vm_address_t)_dyld_get_image_header(0));
+
+    print_region(region);
+    std::cout << std::hex << _dyld_get_image_header(0) << std::endl;
+
+    for (const auto& region: self->GetRegions()) {
+        print_region(region);
+    }
+
 }

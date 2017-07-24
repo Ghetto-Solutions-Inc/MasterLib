@@ -1,287 +1,405 @@
-//
-//  Process.cc
-//  Liberation
-//
-//  Created by satori
-//  Copyright © 2016 satori. All rights reserved.
-//
+/**
+ ******************************************************************************
+ * MasterLib : iOS Process Manipulation Toolkit                               *
+ * File : process.cc                                                          *
+ ******************************************************************************
+ * Copyright 2017 Satori. All rights reserved.                                *
+ * Released under the BSD license - see LICENSE in the root for more details. *
+ ******************************************************************************
+ */
 
-#include <stdlib.h>
+#include <errno.h>
+#include <signal.h>
 #include <sys/sysctl.h>
-#include "host.h"
+#include <mach-o/dyld.h>
+#include <mach/mach_vm.h>
+#include "libproc.h"
 #include "process.h"
 
-#define PROC_ALL_PIDS 1
 
-// cba to include
-extern "C" int getpid();
-extern "C" int kill(int, int);
-extern "C" char ***_NSGetArgv();
-extern "C" char **_NSGetProgname();
+namespace masterlib {
 
-#define krncall(expr)                         \
-  do {                                        \
-    kern_return_t status = (expr);            \
-    if (status != KERN_SUCCESS) return false; \
-  } while (false)
+Process *Process::self; // silences compiler, in c++17 can define as inline
+Process::Region Process::Region::null{0, 0, 0};
 
-// XXX: the below non-member functions may not work in an iOS sandbox
-// TODO: redo these somewhere better
+static inline const char *last_path_component(const char *path) {
+    bool slash = false;
+    long position = strlen(path);
 
-inline const char *NameForPID(int pid) {
-  int numberOfProcesses = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
-  size_t sz = numberOfProcesses * sizeof(pid_t);
-  pid_t *pids = (pid_t *)malloc(sz);
-  proc_listpids(PROC_ALL_PIDS, 0, pids, sz);
-  for (int i = 0; i < numberOfProcesses; i++) {
-    if (pids[i] != pid)
-      continue;
-    else if (pids[i] == pid) {
-      char *name = new char[64];
-      proc_name(pids[i], name, 64);
-      free(pids);
-      return name;
+    for (int i = 0; i < position; i++) {
+        if (path[i] == '/') slash = true;
     }
-  }
-  free(pids);
-  return nullptr;
-}
 
-inline int PIDForName(const char *name) {
-  int numberOfProcesses = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
-  size_t sz = numberOfProcesses * sizeof(pid_t);
-  pid_t *pids = (pid_t *)malloc(sz);
-  proc_listpids(PROC_ALL_PIDS, 0, pids, sz);
-  for (int i = 0; i < numberOfProcesses; i++) {
-    char *pid_name = new char[64];
-    proc_name(pids[i], pid_name, 64);
-    if (strcmp(pid_name, name) == 0) {
-      int pid = pids[i];
-      free(pids);
-      return pid;
+    if (slash) {
+        while (position >= 0 && path[position] != '/') {
+            position--;
+        }
+
+        path += position + 1;
     }
-  }
-  free(pids);
-  return -1;
+    return path;
+
 }
 
-inline bool ProcessExists(int pid) {
-  int numberOfProcesses = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
-  size_t sz = numberOfProcesses * sizeof(pid_t);
-  pid_t *pids = (pid_t *)malloc(sz);
-  proc_listpids(PROC_ALL_PIDS, 0, pids, sz);
-  for (int i = 0; i < numberOfProcesses; i++) {
-    if (pids[i] == pid) {
-      free(pids);
-      return true;
+static inline const char *last_path_component(const std::string &str) {
+    return last_path_component(str.c_str());
+}
+
+__attribute__((constructor))
+void Process::ConstructSelfProcess(int argc,
+                                   const char **argv,
+                                   const char **envp,
+                                   const char **apple,
+                                   struct ProgramVars *) {
+    int pid = getpid();
+    std::string name = last_path_component(argv[0]);
+
+    char *path = new char[MAXPATHLEN * 4];
+    uint32_t path_size = sizeof(path);
+
+    if (_NSGetExecutablePath(path, &path_size) == -1) {
+        delete[] path;
+        path = new char[path_size];
+        _NSGetExecutablePath(path, &path_size); // cannot fail (?)
     }
-  }
-  free(pids);
-  return false;
+
+    Process::self = new Process(pid, name, path);
+    delete[] path;
 }
 
-ProcessRef Process::GetProcess(const char *name) {
-  if (!name) return nullptr;
-  int pid = PIDForName(name);
-  if (pid <= 0) return nullptr;
+std::unique_ptr<Process> Process::FindProcess(pid_t pid) {
+    struct proc_bsdinfo proc;
 
-  task_t task;
-  task_for_pid(mach_task_self(), pid, &task);
-  // Platform plt = PlatformForProcess(pid);
+    // this method sometimes requires root, may need to find a backup method
+    int res = proc_pidinfo(pid,
+                           PROC_PIDTBSDINFO,
+                           0,
+                           &proc,
+                           PROC_PIDTBSDINFO_SIZE);
 
-  return std::make_shared<Process>(pid, name, task /*, plt*/);
+    if (res != PROC_PIDTBSDINFO_SIZE) {
+        return nullptr;
+    }
+    return std::unique_ptr<Process>(new Process(proc.pbi_pid,
+                                                last_path_component(proc.pbi_name),
+                                                PathForPID(proc.pbi_pid)));
 }
 
-ProcessRef Process::GetProcess(int pid) {
-  if (!ProcessExists(pid)) return nullptr;
-
-  const char *name = NameForPID(pid);  // XXX: can be nullptr
-  task_t task;
-  task_for_pid(mach_task_self(), pid, &task);
-  // Platform plt = PlatformForProcess(pid);
-
-  return std::make_shared<Process>(pid, name, task /*, plt*/);
+std::unique_ptr<Process> Process::FindProcess(std::string name) {
+    return FindProcess(PIDForName(name));
 }
 
-ProcessRef Process::Self() {
-  const char *name = *_NSGetProgname();
-  int pid = getpid();
-  task_t task = mach_task_self();
-  // Platform plt = PlatformForProcess(pid);
-
-  return std::make_shared<Process>(pid, name, task /*, plt*/);
-}
-
-// // TODO: make this a member function and check if is Process::Self()
-// bool Process::CanAttach() {
-//   // assume the build is linked against CoreFoundation and Security
-//   SecTaskRef task = SecTaskCreateFromSelf(kCFAllocatorDefault);
-//   CFTypeRef tfp =
-//       SecTaskCopyValueForEntitlement(task, CFSTR("task_for_pid-allow"),
-//       NULL);
-//
-//   return tfp;
-// }
-
-bool Process::IsAlive() {
-  return ProcessExists(pid_);
+bool Process::MachTask(task_t *out) const {
+    if (out) {
+        // if this is the current process use mach_task_self
+        if (this == Process::self) {
+            *out = mach_task_self();
+            return true;
+        } else {
+            if (task_for_pid(mach_task_self(), pid_, out) != KERN_SUCCESS) {
+                // task_for_pid failed, likely due to lack of entitlements
+                return false;
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 bool Process::Kill() {
-  return kill(pid_, SIGKILL);
+    if (kill(pid_, -9) < 0) {
+        // check errno
+        /*
+            [EINVAL]
+            The value of the sig argument is an invalid or unsupported signal number.
+            [EPERM]
+            The process does not have permission to send the signal to any receiving process.
+            [ESRCH]
+            No process or process group can be found corresponding to that specified by pid.
+         */
+        switch (errno) {
+            case ESRCH: {
+                // process not found
+                // throw exception?
+            }
+            default: {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
-// TODO: figure out how to pause our own process without freezing
-bool Process::Pause() {
-  paused_ = true;
-  return (task_suspend(task_) == KERN_SUCCESS);
+// TODO: cleanup region code (especially related to mach_vm_*)
+Process::Region Process::RegionForAddress(vm_address_t addr) {
+    // attempt to retrieve mach task for process
+    task_t task;
+    if (!MachTask(&task)) {
+        return Process::Region::null;
+    }
+
+    mach_vm_size_t vmsize = sizeof(vm_region_basic_info_data_64_t);
+    vm_region_flavor_t flavor = VM_REGION_BASIC_INFO;
+    vm_region_basic_info_data_64_t info;
+    mach_msg_type_number_t info_count = VM_REGION_BASIC_INFO_COUNT_64;
+    memory_object_name_t object;
+    mach_vm_address_t addr_info = addr;
+    kern_return_t res = KERN_SUCCESS;
+    if ((res = mach_vm_region(task, &addr_info, &vmsize, flavor,
+                       (vm_region_info_t) &info, &info_count, &object))) {
+        printf("%s\n", mach_error_string(res));
+        return Process::Region::null;
+    }
+
+    return Process::Region(addr, vmsize, info.protection);
 }
 
-bool Process::Resume() {
-  paused_ = false;
-  return (task_resume(task_) == KERN_SUCCESS);
+std::vector<Process::Region> Process::GetRegions(vm_prot_t prot) {
+    std::vector<Process::Region> regions;
+
+    // attempt to retrieve mach task
+    task_t task;
+    if (!MachTask(&task)) {
+        return std::vector<Process::Region>();
+    }
+
+    kern_return_t status = KERN_SUCCESS;
+    vm_address_t address = 0x0;
+    uint32_t depth = 1;
+    mach_vm_size_t size = 0;
+    mach_vm_address_t addr_info = address; // remove me
+    while (status == KERN_SUCCESS) {
+        struct vm_region_submap_info_64 info;
+        mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_64;
+
+        status = mach_vm_region_recurse(task, &addr_info, &size, &depth,
+                                        (vm_region_info_t) &info, &count);
+        if (status == KERN_INVALID_ADDRESS) break;
+
+        if (info.is_submap) {
+            depth++;
+            continue;
+        }
+        if (info.protection == prot) {
+            regions.push_back(Process::Region(addr_info, size, info.protection));
+        }
+        addr_info += size;
+    }
+
+    return regions;
+
+//    // attempt to retrieve mach task
+//    task_t task;
+//    if (!MachTask(&task)) {
+//        return std::vector<Process::Region>();
+//    }
+//
+//    enum Architecture arch = Architecture();
+//
+//    kern_return_t status = KERN_SUCCESS;
+//    vm_address_t address = 0x0;
+//    uint32_t depth = 1;
+//    mach_vm_size_t size = 0;
+//
+//    while (status == KERN_SUCCESS) {
+//        switch (arch) {
+//            case Architecture::x86:
+//            case Architecture::ARMv7: {
+//                struct vm_region_submap_info info;
+//                mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT;
+//
+//                status = mach_vm_region_recurse(task, (mach_vm_address_t *) &address, &size, &depth,
+//                                                (vm_region_info_t) &info, &count);
+//                if (status == KERN_INVALID_ADDRESS) break;
+//
+//                if (info.is_submap) {
+//                    depth++;
+//                    continue;
+//                }
+//                if (info.protection == prot) {
+//                    regions.push_back(Process::Region(address, size, info.protection));
+//                }
+//                address += size;
+//            }
+//
+//            case Architecture::x86_64:
+//            case Architecture::AArch64: {
+//                struct vm_region_submap_info_64 info;
+//                mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_64;
+//                status = vm_region_recurse_64(task, &address, (vm_size_t *) &size, &depth,
+//                                              (vm_region_info_64_t) &info, &count);
+//
+//                if (status == KERN_INVALID_ADDRESS) break;
+//
+//                if (info.is_submap) {
+//                    depth++;
+//                    continue;
+//                }
+//                if (info.protection == prot) {
+//                    regions.push_back(Process::Region(address, size, info.protection));
+//                }
+//                address += size;
+//            }
+//        }
+//    }
+    return regions;
 }
 
-bool Process::InjectLibrary(const char *lib) {
-  // XXX: taming this dragon is for another day
-  return false;
+bool Process::ModifyRegionProtection(vm_address_t addr, vm_prot_t new_prot) {
+    Process::Region region = RegionForAddress(addr);
+    return ModifyRegionProtection(region, new_prot);
 }
 
-Platform Process::RunningPlatform() {
-  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid_};
-  struct kinfo_proc kp;
-  size_t bufsize = sizeof(kp);
-  int err = sysctl(mib, sizeof(mib) / sizeof(int), &kp, &bufsize, NULL, 0);
-  if (err != 0) return Platform::UNKNOWN;
+bool Process::ModifyRegionProtection(const Process::Region &region, vm_prot_t new_prot) {
+    task_t task;
+    if (!MachTask(&task)) {
+        return false;
+    }
+    return vm_protect(task, region.start(), region.size(), false, new_prot) == KERN_SUCCESS;
+}
+
+size_t Process::ReadMemory(uintptr_t address, uint8_t *out, size_t size) const {
+    if (out) {
+        task_t task;
+        if (!MachTask(&task)) {
+            return 0;
+        }
+
+        vm_size_t sz;
+        kern_return_t res = vm_read_overwrite(task, address, size, (vm_address_t) out, &sz);
+        if (res != KERN_SUCCESS) {
+            // TODO: some exception?
+        }
+        return sz;
+    } else {
+        return 0;
+    }
+}
+
+size_t Process::ReadMemory(uintptr_t address, std::vector<uint8_t> &out, size_t size) const {
+    out.reserve(size);
+
+    task_t task;
+    if (!MachTask(&task)) {
+        return false;
+    }
+
+    vm_size_t sz;
+    kern_return_t res = vm_read_overwrite(task, address, size, (vm_address_t) &out[0], &sz);
+    if (res != KERN_SUCCESS) {
+        // TODO: some exception?
+    }
+    return sz;
+}
+
+size_t Process::WriteMemory(uintptr_t address, const uint8_t *bytes, size_t size, bool force) {
+    task_t task;
+    if (!MachTask(&task)) {
+        return false;
+    }
+
+    if (force) {
+        // TODO: use vm_region(_xx) to get original prot to restore later
+        vm_prot_t rwx = VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE | VM_PROT_COPY;
+        if (vm_protect(task, address, size, false, rwx) != KERN_SUCCESS) {
+            // could not change prot error
+        }
+    }
+
+    if (vm_write(task, address, (vm_offset_t) bytes, size) != KERN_SUCCESS) {
+        // could not write to address error
+    }
+
+    if (force) {
+        // TODO: should restore original prot
+        if (vm_protect(task, address, size, false, VM_PROT_READ | VM_PROT_EXECUTE) != KERN_SUCCESS) {
+            // could not change prot error
+        }
+    }
+    return size;
+}
+
+size_t Process::WriteMemory(uintptr_t address, const std::vector<uint8_t> &bytes, bool force) {
+    task_t task;
+    if (!MachTask(&task)) {
+        return false;
+    }
+    size_t size = bytes.size();
+
+    if (force) {
+        // TODO: use vm_region(_xx) to get original prot to restore later
+        vm_prot_t rwx = VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE | VM_PROT_COPY;
+        vm_protect(task, address, size, false, rwx);
+    }
+
+    vm_write(task, address, (vm_offset_t) bytes.data(), size);
+
+    if (force) {
+        vm_protect(task, address, size, false, VM_PROT_READ | VM_PROT_EXECUTE);
+    }
+    return size;
+}
+
+enum Architecture Process::Architecture() {
+    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid_};
+    struct kinfo_proc kp;
+    size_t bufsize = sizeof(kp);
+    int err = sysctl(mib, sizeof(mib) / sizeof(int), &kp, &bufsize, NULL, 0);
+    if (err != 0) return Architecture::UNKNOWN;
 
 #if defined(__arm__) || defined(__arm64__)
-  return (kp.kp_proc.p_flag & P_LP64) ? Platform::AArch64 : Platform::ARMv7;
+    return (kp.kp_proc.p_flag & P_LP64) ? Platform::AArch64 : Platform::ARMv7;
 #elif defined(__i386__) || defined(__x86_64__)
-  return (kp.kp_proc.p_flag & P_LP64) ? Platform::x86_64 : Platform::x86;
+    return (kp.kp_proc.p_flag & P_LP64) ? Architecture::x86_64 : Architecture::x86;
 #endif
-  return Platform::UNKNOWN;
+    return Architecture::UNKNOWN;
 }
 
-std::vector<::ThreadState *> Process::Threads(mach_port_t ignore) {
-  std::vector<::ThreadState *> local;
+pid_t Process::PIDForName(std::string name) {
+    int proc_count = proc_listpids(1, 0, NULL, 0);
+    pid_t *pids = new pid_t[proc_count];
+    proc_listpids(1, 0, pids, sizeof(pids));
 
-  Platform plt = this->RunningPlatform();
+    for (int i = 0; i < proc_count; i++) {
+        struct proc_bsdinfo proc;
 
-  thread_act_port_array_t threads;
-  mach_msg_type_number_t count;
-  task_threads(task_, &threads, &count);
-
-  for (int i = 0; i < count; i++) {
-    if (threads[i] == ignore) continue;
-
-    switch (plt) {
-      case Platform::x86_64: {
-        local.push_back(new x64ThreadState(threads[i]));
-        break;
-      }
-#ifdef __arm__
-      case Platform::ARMv7: {
-        local.push_back(new ARMv7ThreadState(threads[i]));
-        break;
-      }
-
-      case Platform::AArch64: {
-        local.push_back(new AArch64ThreadState(threads[i]));
-        break;
-      }
-#endif
-      default:
-        break;
+        // this method sometimes requires root, may need to find a backup method
+        proc_pidinfo(pids[i],
+                     PROC_PIDTBSDINFO,
+                     0,
+                     &proc,
+                     PROC_PIDTBSDINFO_SIZE);
+        if (name == proc.pbi_name) {
+            return pids[i];
+        }
     }
-  }
-  return local;
+    return 0xFFFFFFFF; // not great returning a possible pid number
 }
 
-bool Process::ReadMemory(vm_address_t address, char *output, size_t size) {
-  vm_size_t sz;
-  krncall(vm_read_overwrite(task_, address, size, (vm_address_t)output, &sz));
-  return KERN_SUCCESS;
+std::string Process::NameForPID(pid_t pid) {
+    struct proc_bsdinfo proc;
+
+    // this method sometimes requires root, may need to find a backup method
+    proc_pidinfo(pid,
+                 PROC_PIDTBSDINFO,
+                 0,
+                 &proc,
+                 PROC_PIDTBSDINFO_SIZE);
+    // TODO: handle proc_pidinfo fail
+    return proc.pbi_name;
 }
 
-bool Process::WriteMemory(vm_address_t address, char *input, size_t size,
-                          bool force) {
-  if (force) {
-    krncall(vm_protect(
-        task_, address, size, false,
-        VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE | VM_PROT_COPY));
-    krncall(vm_write(task_, address, (vm_offset_t)input, size));
-    // TODO: use vm_region(_xx) to get original prot to restore here
-    krncall(vm_protect(task_, address, size, false,
-                       VM_PROT_READ | VM_PROT_EXECUTE));
-  } else {
-    krncall(vm_write(task_, address, (vm_offset_t)input, size));
-  }
-  return true;
-}
-
-std::vector<Process::Region> Process::GetRegions(vm_prot_t options) {
-  std::vector<Process::Region> regions;
-
-  kern_return_t status = KERN_SUCCESS;
-  vm_address_t address = 0x0;
-  uint32_t depth = 1;
-  vm_size_t size = 0;
-
-  while (status == KERN_SUCCESS) {
-    struct vm_region_submap_info_xx info;
-    mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_XX;
-    status = vm_region_recurse_xx(task_, &address, &size, &depth,
-                                  (vm_region_info_xx_t)&info, &count);
-
-    if (status == KERN_INVALID_ADDRESS) break;
-
-    if (info.is_submap) {
-      depth++;
-      continue;
+std::string Process::PathForPID(pid_t pid) {
+    char *buf = new char[MAXPATHLEN * 4];
+    int ret = proc_pidpath(pid, buf, MAXPATHLEN * 4);
+    if (ret != 0) {
+        // error
     }
-    if (info.protection == options || options == VM_PROT_ANY) {
-      regions.emplace_back(address, size, info.protection);
-    }
-    address += size;
-  }
-  return regions;
+
+    std::string path = buf;
+    delete[] buf;
+
+    return path;
 }
 
-Process::ThreadState::ThreadState(mach_port_t task, mach_port_t thread)
-: state(nullptr) {
-  pid_t pid;
-  kern_return_t status = pid_for_task(task, &pid);
-  if (status != KERN_SUCCESS) return;
-
-  auto proc = Process::GetProcess(pid);
-
-  ThreadState(proc.get(), thread);
-}
-
-Process::ThreadState::ThreadState(Process *proc, mach_port_t thread)
-: state(nullptr) {
-  if (proc) {
-    switch (proc->RunningPlatform()) {
-#ifdef __arm__
-      case Platform::ARMv7: {
-        state = new ARMv7ThreadState(thread);
-        break;
-      }
-      case Platform::AArch64: {
-        state = new AArch64ThreadState(thread);
-        break;
-      }
-#endif
-      case Platform::x86_64: {
-        //state = new x86_64ThreadState(thread);
-        break;
-      }
-      default: {
-        //state = new NOPThreadState(thread);
-        break;
-      }
-    }
-  } else {
-    //state = new NOPThreadState(thread);
-  }
-}
+} // namespace masterlib
