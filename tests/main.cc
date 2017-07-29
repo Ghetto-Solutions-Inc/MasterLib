@@ -10,7 +10,7 @@ inline void print_region(const Process::Region &region) {
 }
 
 int main() {
-    Process *self = Process::self;
+    auto self = Process::self;
 
     std::cout << self->pid() << " " << self->name() << " " << self->path() << std::endl;
 

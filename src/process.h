@@ -78,14 +78,14 @@ public:
     /**
      * A Process instance representing this process
      */
-    static Process *self;
+    static std::shared_ptr<Process> self;
 
     /**
      * Return a pointer to process instance with passed pid
      * @param pid pid of process
      * @return pointer to process object
      */
-    static std::unique_ptr<Process> FindProcess(pid_t pid);
+    static std::shared_ptr<Process> FindProcess(pid_t pid);
 
     /**
      * Return a pointer to process instance with passed name
@@ -93,7 +93,7 @@ public:
      * @param name name of process
      * @return pointer to process object
      */
-    static std::unique_ptr<Process> FindProcess(std::string name);
+    static std::shared_ptr<Process> FindProcess(std::string name);
 
     /**
      * getters
@@ -200,6 +200,24 @@ public:
      */
     enum Architecture Architecture(); // TODO: make a member variable?
 
+    /**
+     * Provide == comparison of Process objects
+     * @param other
+     * @return whether they represent the same process
+     */
+    bool operator==(const Process &other) const {
+        return this->pid() == other.pid();
+    }
+
+    /**
+     * Provide != comparison of Process objects
+     * @param other
+     * @return whether they represent different processes
+     */
+    bool operator!=(const Process &other) const {
+        return this->pid() != other.pid();
+    }
+
 private:
     /**
      * Constructs Process::self before main()
@@ -244,6 +262,10 @@ private:
      */
     Process(pid_t pid, std::string name, std::string path)
             : pid_(pid), name_(name), path_(path) {}
+
+    static std::shared_ptr<Process> Create(pid_t pid, std::string name, std::string path) {
+        return std::shared_ptr<Process>(new Process(pid, name, path));
+    }
 
     pid_t pid_;
     std::string name_;

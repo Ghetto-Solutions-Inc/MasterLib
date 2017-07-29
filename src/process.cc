@@ -21,7 +21,7 @@
 
 namespace masterlib {
 
-Process *Process::self; // silences compiler, in c++17 can define as inline
+std::shared_ptr<Process> Process::self; // silences compiler, in c++17 can define as inline
 Process::Region Process::Region::null{0, 0, 0};
 
 static inline const char *last_path_component(const char *path) {
@@ -65,11 +65,15 @@ void Process::ConstructSelfProcess(int argc,
         _NSGetExecutablePath(path, &path_size); // cannot fail (?)
     }
 
-    Process::self = new Process(pid, name, path);
+    Process::self = Process::Create(pid, name, path);
     delete[] path;
 }
 
-std::unique_ptr<Process> Process::FindProcess(pid_t pid) {
+std::shared_ptr<Process> Process::FindProcess(pid_t pid) {
+    if (pid == getpid()) {
+        return Process::self;
+    }
+
     struct proc_bsdinfo proc;
 
     // this method sometimes requires root, may need to find a backup method
@@ -82,19 +86,19 @@ std::unique_ptr<Process> Process::FindProcess(pid_t pid) {
     if (res != PROC_PIDTBSDINFO_SIZE) {
         return nullptr;
     }
-    return std::unique_ptr<Process>(new Process(proc.pbi_pid,
-                                                last_path_component(proc.pbi_name),
-                                                PathForPID(proc.pbi_pid)));
+    return Process::Create(proc.pbi_pid,
+                           last_path_component(proc.pbi_name),
+                           PathForPID(proc.pbi_pid));
 }
 
-std::unique_ptr<Process> Process::FindProcess(std::string name) {
+std::shared_ptr<Process> Process::FindProcess(std::string name) {
     return FindProcess(PIDForName(name));
 }
 
 bool Process::MachTask(task_t *out) const {
     if (out) {
         // if this is the current process use mach_task_self
-        if (this == Process::self) {
+        if (*this == *Process::self) {
             *out = mach_task_self();
             return true;
         } else {
@@ -149,7 +153,7 @@ Process::Region Process::RegionForAddress(vm_address_t addr) {
     mach_vm_address_t addr_info = addr;
     kern_return_t res = KERN_SUCCESS;
     if ((res = mach_vm_region(task, &addr_info, &vmsize, flavor,
-                       (vm_region_info_t) &info, &info_count, &object))) {
+                              (vm_region_info_t) &info, &info_count, &object))) {
         printf("%s\n", mach_error_string(res));
         return Process::Region::null;
     }
