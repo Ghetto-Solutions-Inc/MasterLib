@@ -11,8 +11,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
 
-file(GLOB_RECURSE masterlib_HEADER_FILES  "src/*.h")
-file(GLOB_RECURSE masterlib_SRC_FILES "src/*.cc")
+file(GLOB_RECURSE masterlib_HEADER_FILES  "src/masterlib/*.h")
+file(GLOB_RECURSE masterlib_SRC_FILES "src/masterlib/*.cc")
 
 set (masterlib_INCLUDE_DIRS "")
 foreach (_headerFile ${masterlib_HEADER_FILES})
@@ -24,8 +24,8 @@ list(REMOVE_DUPLICATES masterlib_INCLUDE_DIRS)
 add_library(masterlib_STATIC STATIC ${masterlib_HEADER_FILES} ${masterlib_SRC_FILES})
 
 target_include_directories(masterlib_STATIC PUBLIC
-        $<BUILD_INTERFACE:${masterlib_INCLUDE_DIRS}>
-        $<INSTALL_INTERFACE:${masterlib_INCLUDE_DIRS}>)
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<INSTALL_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
 
 
 add_executable(masterlib_TESTS tests/main.cc)

@@ -1,4 +1,4 @@
-#include "../src/Process.h"
+#include "masterlib/process.h"
 #include <string.h>
 int ___main() {
   int pid;

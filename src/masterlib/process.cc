@@ -13,8 +13,8 @@
 #include <sys/sysctl.h>
 #include <mach-o/dyld.h>
 
-#include "missing/libproc.h"
-#include "missing/mach_vm.h"
+#include "masterlib/missing/libproc.h"
+#include "masterlib/missing/mach_vm.h"
 
 #include "process.h"
 
