@@ -305,46 +305,31 @@ size_t Process::WriteMemory(uintptr_t address, const uint8_t *bytes, size_t size
         return false;
     }
 
+    // force write to process by modifying region protections to RWX
     if (force) {
-        // TODO: use vm_region(_xx) to get original prot to restore later
+        Process::Region region = RegionForAddress(address);
+
         vm_prot_t rwx = VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE | VM_PROT_COPY;
-        if (vm_protect(task, address, size, false, rwx) != KERN_SUCCESS) {
-            // could not change prot error
+        ModifyRegionProtection(region, rwx);
+
+        if (vm_write(task, address, (vm_offset_t) bytes, size) != KERN_SUCCESS) {
+            // could not write to address error
+        }
+
+        ModifyRegionProtection(region, region.prot());
+    }
+
+    else {
+        if (vm_write(task, address, (vm_offset_t) bytes, size) != KERN_SUCCESS) {
+            // could not write to address error
         }
     }
 
-    if (vm_write(task, address, (vm_offset_t) bytes, size) != KERN_SUCCESS) {
-        // could not write to address error
-    }
-
-    if (force) {
-        // TODO: should restore original prot
-        if (vm_protect(task, address, size, false, VM_PROT_READ | VM_PROT_EXECUTE) != KERN_SUCCESS) {
-            // could not change prot error
-        }
-    }
     return size;
 }
 
 size_t Process::WriteMemory(uintptr_t address, const std::vector<uint8_t> &bytes, bool force) {
-    task_t task;
-    if (!MachTask(&task)) {
-        return false;
-    }
-    size_t size = bytes.size();
-
-    if (force) {
-        // TODO: use vm_region(_xx) to get original prot to restore later
-        vm_prot_t rwx = VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE | VM_PROT_COPY;
-        vm_protect(task, address, size, false, rwx);
-    }
-
-    vm_write(task, address, (vm_offset_t) bytes.data(), size);
-
-    if (force) {
-        vm_protect(task, address, size, false, VM_PROT_READ | VM_PROT_EXECUTE);
-    }
-    return size;
+    return WriteMemory(address, bytes.data(), bytes.size(), force);
 }
 
 enum Architecture Process::Architecture() {
