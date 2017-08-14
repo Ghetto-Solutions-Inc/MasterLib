@@ -30,7 +30,7 @@
 #include <sys/mount.h>
 #include <stdint.h>
 
-#include "proc_info.h"
+#include "sys/proc_info.h"
 
 /*
  * This header file contains private interfaces to obtain process information.  
