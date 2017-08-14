@@ -2,24 +2,42 @@ cmake_minimum_required(VERSION 2.8.7)
 project(masterlib C CXX)
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "No build type selected, default to Debug")
-  set(CMAKE_BUILD_TYPE "Debug")
-endif()
+    message(STATUS "No build type selected, default to Debug")
+    set(CMAKE_BUILD_TYPE "Debug")
+endif ()
+
+if (NOT IOS)
+    set(IOS ON)
+endif ()
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
 
-file(GLOB_RECURSE masterlib_HEADER_FILES  "src/masterlib/*.h")
+file(GLOB_RECURSE masterlib_HEADER_FILES "src/masterlib/*.h")
 file(GLOB_RECURSE masterlib_SRC_FILES "src/masterlib/*.cc")
 
-set (masterlib_INCLUDE_DIRS "")
+# find headers
+set(masterlib_INCLUDE_DIRS "")
 foreach (_headerFile ${masterlib_HEADER_FILES})
-  get_filename_component(_dir ${_headerFile} PATH)
-  list (APPEND masterlib_INCLUDE_DIRS ${_dir})
-endforeach()
+    get_filename_component(_dir ${_headerFile} PATH)
+    list(APPEND masterlib_INCLUDE_DIRS ${_dir})
+endforeach ()
 list(REMOVE_DUPLICATES masterlib_INCLUDE_DIRS)
+
+add_subdirectory("${CMAKE_SOURCE_DIR}/third_party/capstone")
+add_subdirectory("${CMAKE_SOURCE_DIR}/third_party/keystone")
+
+include_directories("${CMAKE_SOURCE_DIR}/third_party/capstone/include")
+include_directories("${CMAKE_SOURCE_DIR}/third_party/keystone/include")
+
+set(BUILD_SHARED_LIBS OFF)
+if (IOS)
+    set(LLVM_TARGETS_TO_BUILD "AArch64;ARM")
+else ()
+    set(LLVM_TARGETS_TO_BUILD "X86")
+endif ()
 
 add_library(masterlib_STATIC STATIC ${masterlib_HEADER_FILES} ${masterlib_SRC_FILES})
 
@@ -29,4 +47,8 @@ target_include_directories(masterlib_STATIC PUBLIC
 
 
 add_executable(masterlib_TESTS tests/main.cc)
+
+target_link_libraries(masterlib_STATIC capstone-static)
+target_link_libraries(masterlib_STATIC keystone)
+
 target_link_libraries(masterlib_TESTS masterlib_STATIC)
