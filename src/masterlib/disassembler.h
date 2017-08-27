@@ -11,28 +11,12 @@
 #ifndef MASTERLIB_DISASSEMBLER_H
 #define MASTERLIB_DISASSEMBLER_H
 
-#include <functional>
-#include <memory>
 #include <capstone.h>
+#include <memory>
+#include <functional>
 #include "instr.h"
 
 namespace masterlib {
-
-#if defined(__x86_64__)
-#define HOST_ARCH Arch::x64
-#define HOST_MODE Mode::Mode64
-#elif defined(__i386__)
-#define HOST_ARCH Arch::x86
-#define HOST_MODE Mode::Mode32
-#elif defined(__arm64__)
-#define HOST_ARCH Arch::ARM64
-#define HOST_MODE Mode::Mode64
-#elif defined(__arm__)
-#define HOST_ARCH Arch::ARM
-#define HOST_MODE Mode::ModeTHUMB
-#else
-#error building for an invalid arch
-#endif
 
 /**
  * capstone based implementation of Instr class
@@ -74,39 +58,66 @@ public:
     cs_insn *instr_;
 };
 
+using IterCallback = std::function<bool(InstrRef &)>;
 
-using IterCallback = std::function<Instr &>;
-
-enum class Arch {
-    x86 = CS_ARCH_X86,
-    x64 = CS_ARCH_X86,
-    ARM = CS_ARCH_ARM,
-    ARM64 = CS_ARCH_ARM64
-};
-
-enum class Mode {
-    Mode32 = CS_MODE_32,
-    Mode64 = CS_MODE_64,
-    ModeARM = CS_MODE_ARM,
-    ModeTHUMB = CS_MODE_THUMB
-};
-
+/**
+ * Provides a basic wrapper around capstone.
+ * Could be improved a lot.
+ */
 class Disassembler {
 public:
-    Disassembler(uintptr_t addr, const uint8_t *code, size_t size, Arch arch = HOST_ARCH, Mode mode = HOST_MODE);
+    Disassembler(uintptr_t addr, const uint8_t *code, size_t size, ArchConfig config = HOST_CONFIG);
     ~Disassembler();
 
+    /**
+     * Sets up the disassembler and underlying capstone object for use.
+     * Currently this gets called automatically if another function
+     * is called but that may change in the future
+     * @return capstone return code
+     */
     int Setup();
 
-    std::unique_ptr<Instr> Disassemble();
-    void DisassembleIter(IterCallback &cb);
+    /**
+     * Disassemble the currently stored code
+     * @param off offset used to provide accurate PC-rel disassembly
+     * @return smart pointer to Instr object (or nullptr if disassembly failed)
+     */
+    InstrRef Disassemble(size_t off = 0);
+
+    /**
+     * Disassemble next instruction from passed instruction
+     * @param current current instruction
+     * @return smart pointer to Instr object (or nullptr if disassembly failed)
+     */
+    InstrRef DisassembleNext(InstrRef current);
+
+    /**
+     * Disassemble instructions passing the Instr objects to a callback function
+     * Disassembly continues until callback function returns false
+     * @param cb callback function
+     */
+    void DisassembleIter(const IterCallback &cb);
+
+    // getters
+
+    bool setup() const { return setup_; }
+
+    uintptr_t address() const { return address_; }
+    void set_address(uintptr_t address) { address_ = address; }
+
+    const uint8_t *code() const { return code_; }
+    void set_code(const uint8_t *code) { code_ = code; }
+
+    const ArchConfig &config() const { return config_; }
+
+    csh handle() { return handle_; }
 
 private:
+    bool setup_;
     uintptr_t address_;
     const uint8_t *code_;
     size_t size_;
-    Arch arch_;
-    Mode mode_;
+    ArchConfig config_;
     csh handle_;
 };
 
