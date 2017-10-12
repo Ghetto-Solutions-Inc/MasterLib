@@ -26,8 +26,8 @@ foreach (_headerFile ${masterlib_HEADER_FILES})
 endforeach ()
 list(REMOVE_DUPLICATES masterlib_INCLUDE_DIRS)
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/third_party/capstone")
-add_subdirectory("${CMAKE_SOURCE_DIR}/third_party/keystone")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/third_party/capstone")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/third_party/keystone")
 
 include_directories("${CMAKE_SOURCE_DIR}/third_party/capstone/include")
 include_directories("${CMAKE_SOURCE_DIR}/third_party/keystone/include")
