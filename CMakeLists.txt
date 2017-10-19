@@ -29,8 +29,8 @@ list(REMOVE_DUPLICATES masterlib_INCLUDE_DIRS)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/third_party/capstone")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/third_party/keystone")
 
-include_directories("${CMAKE_SOURCE_DIR}/third_party/capstone/include")
-include_directories("${CMAKE_SOURCE_DIR}/third_party/keystone/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third_party/capstone/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third_party/keystone/include")
 
 set(BUILD_SHARED_LIBS OFF)
 if (IOS)
