@@ -51,12 +51,6 @@ struct ArchConfig {
 //    int mode_as_ks();
 };
 
-const inline ArchConfig ArchConfig::x86Config{x86, Mode32};
-const inline ArchConfig ArchConfig::x64Config{x86, Mode64};
-const inline ArchConfig ArchConfig::ARMConfig{ARM32, Mode32};
-const inline ArchConfig ArchConfig::THUMBConfig{ARM32, ModeTHUMB};
-const inline ArchConfig ArchConfig::ARM64Config{ARM64, Mode64};
-
 // TODO: make these constexpr in ArchConfig
 #if defined(__x86_64__)
 #define HOST_CONFIG ArchConfig::x64Config

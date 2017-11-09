@@ -44,11 +44,11 @@ public:
     uint64_t address() const override { return addr_; }
     uint16_t size() const override { return bytes_.size(); }
 
-    const char *mnemonic() const {
+    const char *mnemonic() const override {
         return split(instr_, " ")[0].c_str();
     }
 
-    const char *operands() const {
+    const char *operands() const override {
         auto data = split(instr_, " ");
         data.erase(data.begin());
 
